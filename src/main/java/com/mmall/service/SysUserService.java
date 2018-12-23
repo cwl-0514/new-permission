@@ -3,11 +3,13 @@ package com.mmall.service;
 import com.google.common.base.Preconditions;
 import com.mmall.beans.PageQuery;
 import com.mmall.beans.PageResult;
+import com.mmall.common.RequestHolder;
 import com.mmall.dao.SysUserMapper;
 import com.mmall.exception.ParamException;
 import com.mmall.model.SysUser;
 import com.mmall.param.UserParam;
 import com.mmall.util.BeanValidator;
+import com.mmall.util.IpUtil;
 import com.mmall.util.MD5Util;
 import com.mmall.util.PasswordUtil;
 import org.springframework.stereotype.Service;
@@ -37,10 +39,10 @@ public class SysUserService {
          password= "12345678";
         String encrypt = MD5Util.encrypt(password);
         SysUser user = SysUser.builder().username(param.getUsername()).mail(param.getMail()).telephone(param.getTelephone())
-                .remark(param.getRemark()).password(encrypt).build();
+                .remark(param.getRemark()).deptId(param.getDeptId()).password(encrypt).build();
 
-        user.setOperator("system");
-        user.setOperateIp("127.0.0.1");
+        user.setOperator(RequestHolder.getCurrentUser().getUsername());
+        user.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         user.setOperateTime(new Date());
         //发送邮件
         sysUserMapper.insertSelective(user);
@@ -58,8 +60,8 @@ public class SysUserService {
         Preconditions.checkNotNull(before, "待更新的用户不存在");
         SysUser after = SysUser.builder().id(param.getId()).username(param.getUsername()).telephone(param.getTelephone()).mail(param.getMail())
                 .deptId(param.getDeptId()).status(param.getStatus()).remark(param.getRemark()).build();
-        after.setOperator("system");
-        after.setOperateIp("127.0.0.1");
+        after.setOperator(RequestHolder.getCurrentUser().getUsername());
+        after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         after.setOperateTime(new Date());
         sysUserMapper.updateByPrimaryKeySelective(after);
     }

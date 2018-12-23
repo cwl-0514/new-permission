@@ -19,9 +19,9 @@ public interface SysUserMapper {
 
     int updateByPrimaryKey(SysUser record);
 
-    public int countByMail(@Param("email") String email, @Param("userId") Integer userId);
+    public int countByMail(@Param("mail") String email, @Param("id") Integer id);
 
-    public int countByTelephone(@Param("telephone") String telephone,@Param("userId") Integer userId);
+    public int countByTelephone(@Param("telephone") String telephone,@Param("id") Integer id);
     /**
      *  根据用户名或者邮箱查询用户
      * @param keyword 用户名或者邮箱

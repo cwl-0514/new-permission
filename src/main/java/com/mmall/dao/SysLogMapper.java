@@ -17,4 +17,6 @@ public interface SysLogMapper {
     int updateByPrimaryKeyWithBLOBs(SysLogWithBLOBs record);
 
     int updateByPrimaryKey(SysLog record);
+
+
 }

@@ -1,21 +1,20 @@
 package com.mmall.service;
 
 import com.google.common.base.Preconditions;
-import com.mmall.common.JsonData;
+import com.mmall.common.RequestHolder;
 import com.mmall.dao.SysDeptMapper;
 import com.mmall.exception.ParamException;
 import com.mmall.model.SysDept;
 import com.mmall.param.DeptParam;
 import com.mmall.util.BeanValidator;
+import com.mmall.util.IpUtil;
 import com.mmall.util.LevelUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sun.print.PSPrinterJob;
 
-import java.security.cert.PKIXParameters;
 import java.util.Date;
 import java.util.List;
 
@@ -34,14 +33,15 @@ public class SysDeptService {
         //检验参数是否出现异常
         BeanValidator.check(deptParam);
         //检验在同一级目录下是否有相同名称的部门
+
         if (checkExist(deptParam.getParentId(), deptParam.getName(), deptParam.getId())) {
             throw new ParamException("同一级目录下存在相同名称的部门");
         }
         SysDept dept = SysDept.builder().name(deptParam.getName()).parentId(deptParam.getParentId()).seq(deptParam.getSeq())
                 .remark(deptParam.getRemark()).build();
         dept.setLevel(LevelUtil.calculateLevel(getParentLevel(deptParam.getParentId()), deptParam.getParentId()));
-        dept.setOperator("system");
-        dept.setOperateIp("127.0.0.1");
+        dept.setOperator(RequestHolder.getCurrentUser().getUsername());
+        dept.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         dept.setOperateTime(new Date());
         //保存
         sysDeptMapper.insertSelective(dept);
@@ -65,10 +65,10 @@ public class SysDeptService {
         SysDept after = SysDept.builder().id(deptParam.getId()).name(deptParam.getName()).parentId(deptParam.getParentId())
                 .seq(deptParam.getSeq()).remark(deptParam.getRemark()).build();
         after.setLevel(LevelUtil.calculateLevel(getParentLevel(deptParam.getParentId()), deptParam.getParentId()));
-        after.setOperator("system");
-        after.setOperateIp("127.0.0.1");
+        after.setOperator(RequestHolder.getCurrentUser().getUsername());
+        after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         after.setOperateTime(new Date());
-        //跟新当前部门下的子部门
+        //跟新当前部门
         updateWithChild(before, after);
     }
 
@@ -82,7 +82,7 @@ public class SysDeptService {
         String newLevelPrefix = after.getLevel();
         String oldLevelPrefix = before.getLevel();
         //当前部门levle改变了,子类level也会随之改变.
-        //更新level 和更新后的level 不一致情况下 更新当前部门下的子部门
+        //更新level 和更新后的level 不一致情况下 更新当前部门下的子部门 因为跟新后的部门level是再次计算出来的
         if (!before.getLevel().equals(after.getLevel())){
             //获取当前下部门所有的子部门
             List<SysDept> deptList = sysDeptMapper.getChildDeptListByLevel(before.getLevel());
@@ -94,9 +94,11 @@ public class SysDeptService {
                         dept.setLevel(level);
                     }
                 }
+                //更新当前要跟新的子部门
                 sysDeptMapper.batchUpdateLevel(deptList);
             }
         }
+        //更新部门
         sysDeptMapper.updateByPrimaryKey(after);
 
     }
